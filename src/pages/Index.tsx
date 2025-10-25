@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Scissors } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import ChapasTab from "@/components/ChapasTab";
 import RetalhosTab from "@/components/RetalhosTab";
+import CorteDialog from "@/components/CorteDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
+  const [corteDialogOpen, setCorteDialogOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/20">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -18,6 +21,13 @@ const Index = () => {
               </h1>
               <p className="text-sm text-muted-foreground">Gestão de Acrílico</p>
             </div>
+            <Button
+              onClick={() => setCorteDialogOpen(true)}
+              className="gap-2"
+            >
+              <Scissors className="h-4 w-4" />
+              Registar Cortes
+            </Button>
           </div>
         </div>
       </header>
@@ -43,6 +53,8 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      <CorteDialog open={corteDialogOpen} onOpenChange={setCorteDialogOpen} />
     </div>
   );
 };
