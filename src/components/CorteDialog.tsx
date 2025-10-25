@@ -36,7 +36,7 @@ interface CorteDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-interface Corte {
+interface Sobra {
   largura: number;
   altura: number;
   id: string;
@@ -50,8 +50,8 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
   const chapas = useChapasStore((state) => state.chapas);
   const updateChapa = useChapasStore((state) => state.updateChapa);
   const addRetalho = useRetalhosStore((state) => state.addRetalho);
-  const [cortes, setCortes] = useState<Corte[]>([]);
-  const [novoCorte, setNovoCorte] = useState({ largura: "", altura: "" });
+  const [sobras, setSobras] = useState<Sobra[]>([]);
+  const [novaSobra, setNovaSobra] = useState({ largura: "", altura: "" });
 
   const form = useForm<z.infer<typeof corteSchema>>({
     resolver: zodResolver(corteSchema),
@@ -64,14 +64,14 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
     (c) => c.id === form.watch("chapaId")
   );
 
-  const adicionarCorte = () => {
-    const largura = Number(novoCorte.largura);
-    const altura = Number(novoCorte.altura);
+  const adicionarSobra = () => {
+    const largura = Number(novaSobra.largura);
+    const altura = Number(novaSobra.altura);
 
     if (!largura || !altura) {
       toast({
         title: "Erro",
-        description: "Preencha as dimensões do corte",
+        description: "Preencha as dimensões da sobra",
         variant: "destructive",
       });
       return;
@@ -89,32 +89,32 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
     if (largura > chapaSelecionada.largura || altura > chapaSelecionada.altura) {
       toast({
         title: "Erro",
-        description: "Corte maior que a chapa disponível",
+        description: "Sobra maior que a chapa disponível",
         variant: "destructive",
       });
       return;
     }
 
-    setCortes([
-      ...cortes,
+    setSobras([
+      ...sobras,
       {
         largura,
         altura,
         id: crypto.randomUUID(),
       },
     ]);
-    setNovoCorte({ largura: "", altura: "" });
+    setNovaSobra({ largura: "", altura: "" });
   };
 
-  const removerCorte = (id: string) => {
-    setCortes(cortes.filter((c) => c.id !== id));
+  const removerSobra = (id: string) => {
+    setSobras(sobras.filter((s) => s.id !== id));
   };
 
   const onSubmit = (values: z.infer<typeof corteSchema>) => {
-    if (cortes.length === 0) {
+    if (sobras.length === 0) {
       toast({
         title: "Erro",
-        description: "Adicione pelo menos um corte",
+        description: "Adicione pelo menos uma sobra",
         variant: "destructive",
       });
       return;
@@ -123,11 +123,11 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
     const chapa = chapas.find((c) => c.id === values.chapaId);
     if (!chapa) return;
 
-    // Criar retalhos para cada corte
-    cortes.forEach((corte) => {
+    // Criar retalhos para cada sobra
+    sobras.forEach((sobra) => {
       addRetalho({
-        largura: corte.largura,
-        altura: corte.altura,
+        largura: sobra.largura,
+        altura: sobra.altura,
         espessura: chapa.espessura,
         cor: chapa.cor,
         chapaOrigem: `Chapa ${chapa.cor} (${chapa.largura}x${chapa.altura}mm)`,
@@ -144,13 +144,13 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
 
     toast({
       title: "Cortes registados!",
-      description: `${cortes.length} retalho(s) adicionado(s) ao stock`,
+      description: `${sobras.length} sobra(s) adicionada(s) aos retalhos`,
     });
 
     // Reset
     form.reset();
-    setCortes([]);
-    setNovoCorte({ largura: "", altura: "" });
+    setSobras([]);
+    setNovaSobra({ largura: "", altura: "" });
     onOpenChange(false);
   };
 
@@ -212,33 +212,33 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
             )}
 
             <div className="space-y-4">
-              <h3 className="text-sm font-medium">Adicionar Cortes</h3>
+              <h3 className="text-sm font-medium">Adicionar Sobras (Retalhos)</h3>
               <div className="flex gap-3">
                 <Input
                   type="number"
                   placeholder="Largura (mm)"
-                  value={novoCorte.largura}
+                  value={novaSobra.largura}
                   onChange={(e) =>
-                    setNovoCorte({ ...novoCorte, largura: e.target.value })
+                    setNovaSobra({ ...novaSobra, largura: e.target.value })
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      adicionarCorte();
+                      adicionarSobra();
                     }
                   }}
                 />
                 <Input
                   type="number"
                   placeholder="Altura (mm)"
-                  value={novoCorte.altura}
+                  value={novaSobra.altura}
                   onChange={(e) =>
-                    setNovoCorte({ ...novoCorte, altura: e.target.value })
+                    setNovaSobra({ ...novaSobra, altura: e.target.value })
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      adicionarCorte();
+                      adicionarSobra();
                     }
                   }}
                 />
@@ -246,31 +246,31 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={adicionarCorte}
+                  onClick={adicionarSobra}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
-            {cortes.length > 0 && (
+            {sobras.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-sm font-medium">
-                  Cortes a registar ({cortes.length})
+                  Sobras a registar ({sobras.length})
                 </h3>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {cortes.map((corte) => (
-                    <Card key={corte.id}>
+                  {sobras.map((sobra) => (
+                    <Card key={sobra.id}>
                       <CardContent className="flex items-center justify-between p-3">
                         <span className="text-sm">
-                          {corte.largura}mm × {corte.altura}mm
+                          {sobra.largura}mm × {sobra.altura}mm
                         </span>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive"
-                          onClick={() => removerCorte(corte.id)}
+                          onClick={() => removerSobra(sobra.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -291,7 +291,7 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
                 Cancelar
               </Button>
               <Button type="submit" className="flex-1">
-                Registar Cortes
+                Registar Sobras
               </Button>
             </div>
           </form>
