@@ -1,0 +1,21 @@
+export interface Chapa {
+  id: string;
+  largura: number;
+  altura: number;
+  espessura: number;
+  cor: string;
+  quantidade: number;
+  localizacao?: string;
+  dataCriacao: Date;
+}
+
+export interface Retalho {
+  id: string;
+  largura: number;
+  altura: number;
+  espessura: number;
+  cor: string;
+  chapaOrigem?: string;
+  localizacao?: string;
+  dataCriacao: Date;
+}
