@@ -29,3 +29,15 @@ export interface Corte {
   chapaOrigem?: string;
   dataCriacao: Date;
 }
+
+export interface Sobra {
+  id: string;
+  largura: number;
+  altura: number;
+  espessura: number;
+  cor: string;
+  chapaOrigem?: string;
+  localizacao?: string;
+  areaCortada: number;
+  dataCriacao: Date;
+}

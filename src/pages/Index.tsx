@@ -4,6 +4,7 @@ import { Scissors } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import ChapasTab from "@/components/ChapasTab";
 import RetalhosTab from "@/components/RetalhosTab";
+import SobrasTab from "@/components/SobrasTab";
 import CorteDialog from "@/components/CorteDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -38,6 +39,7 @@ const Index = () => {
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="chapas">Chapas</TabsTrigger>
             <TabsTrigger value="retalhos">Retalhos</TabsTrigger>
+            <TabsTrigger value="sobras">Sobras</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -50,6 +52,10 @@ const Index = () => {
 
           <TabsContent value="retalhos">
             <RetalhosTab />
+          </TabsContent>
+
+          <TabsContent value="sobras">
+            <SobrasTab />
           </TabsContent>
         </Tabs>
       </main>
