@@ -19,3 +19,13 @@ export interface Retalho {
   localizacao?: string;
   dataCriacao: Date;
 }
+
+export interface Corte {
+  id: string;
+  largura: number;
+  altura: number;
+  espessura: number;
+  cor: string;
+  chapaOrigem?: string;
+  dataCriacao: Date;
+}
