@@ -32,6 +32,8 @@ import { useSobrasStore } from "@/store/useSobrasStore";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, Scissors } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface CorteDialogProps {
   open: boolean;
@@ -45,13 +47,17 @@ interface Corte {
 }
 
 const corteSchema = z.object({
-  chapaId: z.string().min(1, "Selecione uma chapa"),
+  tipo: z.enum(["chapa", "retalho", "sobra"]),
+  itemId: z.string().min(1, "Selecione um item"),
 });
 
 const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
   const chapas = useChapasStore((state) => state.chapas);
   const updateChapa = useChapasStore((state) => state.updateChapa);
-  const addRetalho = useRetalhosStore((state) => state.addRetalho);
+  const retalhos = useRetalhosStore((state) => state.retalhos);
+  const removeRetalho = useRetalhosStore((state) => state.removeRetalho);
+  const sobras = useSobrasStore((state) => state.sobras);
+  const removeSobra = useSobrasStore((state) => state.removeSobra);
   const addCorte = useCortesStore((state) => state.addCorte);
   const addSobra = useSobrasStore((state) => state.addSobra);
   const [cortes, setCortes] = useState<Corte[]>([]);
@@ -60,13 +66,20 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
   const form = useForm<z.infer<typeof corteSchema>>({
     resolver: zodResolver(corteSchema),
     defaultValues: {
-      chapaId: "",
+      tipo: "chapa",
+      itemId: "",
     },
   });
 
-  const chapaSelecionada = chapas.find(
-    (c) => c.id === form.watch("chapaId")
-  );
+  const tipoSelecionado = form.watch("tipo");
+  const itemIdSelecionado = form.watch("itemId");
+
+  const itemSelecionado = 
+    tipoSelecionado === "chapa" 
+      ? chapas.find((c) => c.id === itemIdSelecionado)
+      : tipoSelecionado === "retalho"
+      ? retalhos.find((r) => r.id === itemIdSelecionado)
+      : sobras.find((s) => s.id === itemIdSelecionado);
 
   const adicionarCorte = () => {
     const largura = Number(novoCorte.largura);
@@ -81,19 +94,19 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
       return;
     }
 
-    if (!chapaSelecionada) {
+    if (!itemSelecionado) {
       toast({
         title: "Erro",
-        description: "Selecione uma chapa primeiro",
+        description: "Selecione um item primeiro",
         variant: "destructive",
       });
       return;
     }
 
-    if (largura > chapaSelecionada.largura || altura > chapaSelecionada.altura) {
+    if (largura > itemSelecionado.largura || altura > itemSelecionado.altura) {
       toast({
         title: "Erro",
-        description: "Corte maior que a chapa disponível",
+        description: "Corte maior que o item disponível",
         variant: "destructive",
       });
       return;
@@ -124,41 +137,54 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
       return;
     }
 
-    const chapa = chapas.find((c) => c.id === values.chapaId);
-    if (!chapa) return;
+    if (!itemSelecionado) return;
 
     // Calcular área total cortada
     const areaCortada = cortes.reduce((total, corte) => {
       return total + (corte.largura * corte.altura) / 1000000; // converter para m²
     }, 0);
 
+    const origemNome = 
+      values.tipo === "chapa" 
+        ? `Chapa ${itemSelecionado.cor} (${itemSelecionado.largura}x${itemSelecionado.altura}mm)`
+        : values.tipo === "retalho"
+        ? `Retalho ${itemSelecionado.cor} (${itemSelecionado.largura}x${itemSelecionado.altura}mm)`
+        : `Sobra ${itemSelecionado.cor} (${itemSelecionado.largura}x${itemSelecionado.altura}mm)`;
+
     // Registar cortes
     cortes.forEach((corte) => {
       addCorte({
         largura: corte.largura,
         altura: corte.altura,
-        espessura: chapa.espessura,
-        cor: chapa.cor,
-        chapaOrigem: `Chapa ${chapa.cor} (${chapa.largura}x${chapa.altura}mm)`,
+        espessura: itemSelecionado.espessura,
+        cor: itemSelecionado.cor,
+        chapaOrigem: origemNome,
       });
     });
 
     // Criar sobra automaticamente com a área cortada
     addSobra({
-      largura: chapa.largura,
-      altura: chapa.altura,
-      espessura: chapa.espessura,
-      cor: chapa.cor,
-      chapaOrigem: `Chapa ${chapa.cor} (${chapa.largura}x${chapa.altura}mm)`,
-      localizacao: chapa.localizacao,
+      largura: itemSelecionado.largura,
+      altura: itemSelecionado.altura,
+      espessura: itemSelecionado.espessura,
+      cor: itemSelecionado.cor,
+      chapaOrigem: origemNome,
+      localizacao: itemSelecionado.localizacao,
       areaCortada: areaCortada,
     });
 
-    // Decrementar quantidade da chapa
-    if (chapa.quantidade > 1) {
-      updateChapa(values.chapaId, { quantidade: chapa.quantidade - 1 });
-    } else {
-      updateChapa(values.chapaId, { quantidade: 0 });
+    // Remover/decrementar do store apropriado
+    if (values.tipo === "chapa") {
+      const chapa = itemSelecionado as any;
+      if (chapa.quantidade > 1) {
+        updateChapa(values.itemId, { quantidade: chapa.quantidade - 1 });
+      } else {
+        updateChapa(values.itemId, { quantidade: 0 });
+      }
+    } else if (values.tipo === "retalho") {
+      removeRetalho(values.itemId);
+    } else if (values.tipo === "sobra") {
+      removeSobra(values.itemId);
     }
 
     toast({
@@ -167,7 +193,7 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
     });
 
     // Reset
-    form.reset();
+    form.reset({ tipo: "chapa", itemId: "" });
     setCortes([]);
     setNovoCorte({ largura: "", altura: "" });
     onOpenChange(false);
@@ -187,21 +213,55 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
-              name="chapaId"
+              name="tipo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Selecionar Chapa</FormLabel>
+                  <FormLabel>Tipo de Material</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue("itemId", "");
+                      }}
+                      value={field.value}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="chapa" id="chapa" />
+                        <Label htmlFor="chapa">Chapa</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="retalho" id="retalho" />
+                        <Label htmlFor="retalho">Retalho</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sobra" id="sobra" />
+                        <Label htmlFor="sobra">Sobra</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="itemId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Selecionar {tipoSelecionado === "chapa" ? "Chapa" : tipoSelecionado === "retalho" ? "Retalho" : "Sobra"}</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Escolha uma chapa..." />
+                        <SelectValue placeholder={`Escolha ${tipoSelecionado === "chapa" ? "uma chapa" : tipoSelecionado === "retalho" ? "um retalho" : "uma sobra"}...`} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {chapas
+                      {tipoSelecionado === "chapa" && chapas
                         .filter((c) => c.quantidade > 0)
                         .map((chapa) => (
                           <SelectItem key={chapa.id} value={chapa.id}>
@@ -209,6 +269,18 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
                             {chapa.espessura}mm) - {chapa.quantidade} unid.
                           </SelectItem>
                         ))}
+                      {tipoSelecionado === "retalho" && retalhos.map((retalho) => (
+                        <SelectItem key={retalho.id} value={retalho.id}>
+                          {retalho.cor} - {retalho.largura}x{retalho.altura}mm (
+                          {retalho.espessura}mm)
+                        </SelectItem>
+                      ))}
+                      {tipoSelecionado === "sobra" && sobras.map((sobra) => (
+                        <SelectItem key={sobra.id} value={sobra.id}>
+                          {sobra.cor} - {sobra.largura}x{sobra.altura}mm (
+                          {sobra.espessura}mm) - {((sobra.largura * sobra.altura) / 1000000 - sobra.areaCortada).toFixed(2)}m² disponíveis
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -216,16 +288,18 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
               )}
             />
 
-            {chapaSelecionada && (
+            {itemSelecionado && (
               <Card className="bg-accent/50">
                 <CardContent className="pt-4">
                   <p className="text-sm font-medium">
-                    Chapa selecionada: {chapaSelecionada.largura}x
-                    {chapaSelecionada.altura}mm
+                    {tipoSelecionado === "chapa" ? "Chapa" : tipoSelecionado === "retalho" ? "Retalho" : "Sobra"} selecionada: {itemSelecionado.largura}x
+                    {itemSelecionado.altura}mm
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {chapaSelecionada.quantidade} unidade(s) disponível(is)
-                  </p>
+                  {tipoSelecionado === "chapa" && (
+                    <p className="text-sm text-muted-foreground">
+                      {(itemSelecionado as any).quantidade} unidade(s) disponível(is)
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
