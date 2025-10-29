@@ -144,6 +144,15 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
       return total + (corte.largura * corte.altura) / 1000000; // converter para m²
     }, 0);
 
+    // Calcular área total do item original
+    const areaTotal = (itemSelecionado.largura * itemSelecionado.altura) / 1000000; // em m²
+    const areaDisponivel = areaTotal - areaCortada;
+
+    // Calcular novas dimensões proporcionais baseadas na área disponível
+    const fatorEscala = Math.sqrt(areaDisponivel / areaTotal);
+    const novaLargura = Math.round(itemSelecionado.largura * fatorEscala);
+    const novaAltura = Math.round(itemSelecionado.altura * fatorEscala);
+
     const origemNome = 
       values.tipo === "chapa" 
         ? `Chapa ${itemSelecionado.cor} (${itemSelecionado.largura}x${itemSelecionado.altura}mm)`
@@ -162,15 +171,15 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
       });
     });
 
-    // Criar sobra automaticamente com a área cortada
+    // Criar sobra automaticamente com dimensões calculadas
     addSobra({
-      largura: itemSelecionado.largura,
-      altura: itemSelecionado.altura,
+      largura: novaLargura,
+      altura: novaAltura,
       espessura: itemSelecionado.espessura,
       cor: itemSelecionado.cor,
       chapaOrigem: origemNome,
       localizacao: itemSelecionado.localizacao,
-      areaCortada: areaCortada,
+      areaCortada: 0, // Área cortada é 0 na nova sobra
     });
 
     // Remover/decrementar do store apropriado
