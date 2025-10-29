@@ -62,6 +62,7 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
   const addSobra = useSobrasStore((state) => state.addSobra);
   const [cortes, setCortes] = useState<Corte[]>([]);
   const [novoCorte, setNovoCorte] = useState({ largura: "", altura: "" });
+  const [sobraDimensoes, setSobraDimensoes] = useState({ largura: "", altura: "" });
 
   const form = useForm<z.infer<typeof corteSchema>>({
     resolver: zodResolver(corteSchema),
@@ -137,21 +138,19 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
       return;
     }
 
+    const larguraSobra = Number(sobraDimensoes.largura);
+    const alturaSobra = Number(sobraDimensoes.altura);
+
+    if (!larguraSobra || !alturaSobra) {
+      toast({
+        title: "Erro",
+        description: "Especifique as dimensões da sobra útil",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!itemSelecionado) return;
-
-    // Calcular área total cortada
-    const areaCortada = cortes.reduce((total, corte) => {
-      return total + (corte.largura * corte.altura) / 1000000; // converter para m²
-    }, 0);
-
-    // Calcular área total do item original
-    const areaTotal = (itemSelecionado.largura * itemSelecionado.altura) / 1000000; // em m²
-    const areaDisponivel = areaTotal - areaCortada;
-
-    // Calcular novas dimensões proporcionais baseadas na área disponível
-    const fatorEscala = Math.sqrt(areaDisponivel / areaTotal);
-    const novaLargura = Math.round(itemSelecionado.largura * fatorEscala);
-    const novaAltura = Math.round(itemSelecionado.altura * fatorEscala);
 
     const origemNome = 
       values.tipo === "chapa" 
@@ -171,10 +170,10 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
       });
     });
 
-    // Criar sobra automaticamente com dimensões calculadas
+    // Criar sobra com dimensões especificadas manualmente
     addSobra({
-      largura: novaLargura,
-      altura: novaAltura,
+      largura: larguraSobra,
+      altura: alturaSobra,
       espessura: itemSelecionado.espessura,
       cor: itemSelecionado.cor,
       chapaOrigem: origemNome,
@@ -198,13 +197,14 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
 
     toast({
       title: "Cortes registados!",
-      description: `${cortes.length} corte(s) registado(s) e sobra calculada automaticamente`,
+      description: `${cortes.length} corte(s) registado(s) e sobra de ${larguraSobra}×${alturaSobra}mm criada`,
     });
 
     // Reset
     form.reset({ tipo: "chapa", itemId: "" });
     setCortes([]);
     setNovoCorte({ largura: "", altura: "" });
+    setSobraDimensoes({ largura: "", altura: "" });
     onOpenChange(false);
   };
 
@@ -356,31 +356,62 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
             </div>
 
             {cortes.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">
-                  Cortes a registar ({cortes.length})
-                </h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {cortes.map((corte) => (
-                    <Card key={corte.id}>
-                      <CardContent className="flex items-center justify-between p-3">
-                        <span className="text-sm">
-                          {corte.largura}mm × {corte.altura}mm
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => removerCorte(corte.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+              <>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium">
+                    Cortes a registar ({cortes.length})
+                  </h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {cortes.map((corte) => (
+                      <Card key={corte.id}>
+                        <CardContent className="flex items-center justify-between p-3">
+                          <span className="text-sm">
+                            {corte.largura}mm × {corte.altura}mm
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => removerCorte(corte.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
-              </div>
+
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium">Dimensões da Melhor Sobra Útil</h3>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <Input
+                        type="number"
+                        placeholder="Largura sobra (mm)"
+                        value={sobraDimensoes.largura}
+                        onChange={(e) =>
+                          setSobraDimensoes({ ...sobraDimensoes, largura: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        type="number"
+                        placeholder="Altura sobra (mm)"
+                        value={sobraDimensoes.altura}
+                        onChange={(e) =>
+                          setSobraDimensoes({ ...sobraDimensoes, altura: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Especifique as dimensões da maior peça útil que sobrou após os cortes
+                  </p>
+                </div>
+              </>
             )}
 
             <div className="flex gap-3 pt-4">
