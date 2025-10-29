@@ -62,7 +62,6 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
   const addSobra = useSobrasStore((state) => state.addSobra);
   const [cortes, setCortes] = useState<Corte[]>([]);
   const [novoCorte, setNovoCorte] = useState({ largura: "", altura: "" });
-  const [sobraDimensoes, setSobraDimensoes] = useState({ largura: "", altura: "" });
 
   const form = useForm<z.infer<typeof corteSchema>>({
     resolver: zodResolver(corteSchema),
@@ -138,19 +137,19 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
       return;
     }
 
-    const larguraSobra = Number(sobraDimensoes.largura);
-    const alturaSobra = Number(sobraDimensoes.altura);
-
-    if (!larguraSobra || !alturaSobra) {
-      toast({
-        title: "Erro",
-        description: "Especifique as dimensões da sobra útil",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!itemSelecionado) return;
+
+    // Calcular área total e área dos cortes
+    const areaTotal = (itemSelecionado.largura * itemSelecionado.altura) / 1_000_000; // em m²
+    const areaCortes = cortes.reduce((acc, corte) => {
+      return acc + (corte.largura * corte.altura) / 1_000_000;
+    }, 0);
+    const areaRestante = areaTotal - areaCortes;
+
+    // Calcular dimensões da sobra mantendo proporção original
+    const proporcao = itemSelecionado.largura / itemSelecionado.altura;
+    const alturaSobra = Math.round(Math.sqrt((areaRestante * 1_000_000) / proporcao));
+    const larguraSobra = Math.round(alturaSobra * proporcao);
 
     const origemNome = 
       values.tipo === "chapa" 
@@ -204,7 +203,6 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
     form.reset({ tipo: "chapa", itemId: "" });
     setCortes([]);
     setNovoCorte({ largura: "", altura: "" });
-    setSobraDimensoes({ largura: "", altura: "" });
     onOpenChange(false);
   };
 
@@ -381,35 +379,6 @@ const CorteDialog = ({ open, onOpenChange }: CorteDialogProps) => {
                       </Card>
                     ))}
                   </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-sm font-medium">Dimensões da Melhor Sobra Útil</h3>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <Input
-                        type="number"
-                        placeholder="Largura sobra (mm)"
-                        value={sobraDimensoes.largura}
-                        onChange={(e) =>
-                          setSobraDimensoes({ ...sobraDimensoes, largura: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <Input
-                        type="number"
-                        placeholder="Altura sobra (mm)"
-                        value={sobraDimensoes.altura}
-                        onChange={(e) =>
-                          setSobraDimensoes({ ...sobraDimensoes, altura: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Especifique as dimensões da maior peça útil que sobrou após os cortes
-                  </p>
                 </div>
               </>
             )}
